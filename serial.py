@@ -1,0 +1,34 @@
+from PyQt5.QtWidgets import QWidget, QLabel, QLayout, QVBoxLayout, QHBoxLayout, QPushButton
+
+class serial_page(QWidget):
+    def __init__(self):
+        super().__init__()
+        
+        self.setWindowTitle("Serial")
+        self.resize(750, 750)
+
+            # Criando um label central
+        self.scope = device_option("Osciloscópio")
+        self.generator = device_option("Gerador de funções")
+        self.dso2d15 = device_option("DSO2D15")
+        self.applybtn = QPushButton("Conectar")
+        
+        self.mylayout = QVBoxLayout()
+        self.mylayout.addWidget(self.scope)
+        self.mylayout.addWidget(self.generator)
+        self.mylayout.addWidget(self.dso2d15)
+        self.mylayout.addWidget(self.applybtn)
+        
+        
+        self.setLayout(self.mylayout)
+        
+class device_option(QWidget):
+    def __init__(self,mystr):
+        super().__init__()
+        self.mystr=mystr
+        self.myObj = QHBoxLayout()
+        self.mydevice = QLabel(self.mystr)
+        self.mybtn = QPushButton("Conectar")
+        self.myObj.addWidget(self.mydevice)
+        self.myObj.addWidget(self.mybtn)
+        self.setLayout(self.myObj)
