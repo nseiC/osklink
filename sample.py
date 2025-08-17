@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QWidget, QLabel, QLayout, QVBoxLayout
+from PyQt5.QtWidgets import (QWidget, QLabel, QLayout, QVBoxLayout, QLineEdit)
 
 class sample_page(QWidget):
     def __init__(self):
