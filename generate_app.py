@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QMainWindow, QMenuBar, QStackedWidget, QAction
-from serial import serial_page
+from serial_execution import serial_page
 from sample import sample_page
 from dso2d15 import dso2d15_page
 from impedance import impedance_page

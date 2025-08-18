@@ -1,3 +1,5 @@
+import pyvisa
+import serial.tools.list_ports 
 from PyQt5.QtWidgets import (QWidget, QLabel, QLayout, QVBoxLayout, QHBoxLayout, QPushButton,
 QComboBox)
 
@@ -18,23 +20,10 @@ class serial_page(QWidget):
         self.mylayout = QVBoxLayout()
         self.mylayout.addWidget(self.scope)
         self.mylayout.addWidget(self.generator)
-        self.mylayout.addWidget(self.dso2d15)
-        self.mylayout.addWidget(self.arduino)
         self.mylayout.addWidget(self.applybtn)
         self.setLayout(self.mylayout)
         
-    def list_ports(self):
-        """Lista as portas VISA disponíveis e atualiza o ComboBox"""
-        try:
-            resources = self.rm.list_resources()
-            self.combo_ports.clear()  # limpa lista antiga
-            if resources:
-                self.combo_ports.addItems(resources)
-            else:
-                self.combo_ports.addItem("Nenhuma porta encontrada")
-        except Exception as e:
-            self.combo_ports.clear()
-            self.combo_ports.addItem(f"Erro: {e}")
+            
 class device_option(QWidget):
     def __init__(self,mystr):
         super().__init__()
@@ -42,6 +31,12 @@ class device_option(QWidget):
         self.myObj = QHBoxLayout()
         self.mydevice = QLabel(self.mystr)
         self.mybtn = QComboBox()
+        if mystr == 'Osciloscópio':
+            rm = pyvisa.ResourceManager()
+            self.mybtn.addItem(rm.list_resources()[0])
+        if mystr == 'Gerador de funções':
+            porta = serial.tools.list_ports.comports()
+            self.mybtn.addItem(porta[0].device)
         self.myObj.addWidget(self.mydevice)
         self.myObj.addWidget(self.mybtn)
         self.setLayout(self.myObj)
