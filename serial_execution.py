@@ -33,10 +33,12 @@ class device_option(QWidget):
         self.mybtn = QComboBox()
         if mystr == 'Osciloscópio':
             rm = pyvisa.ResourceManager()
-            self.mybtn.addItem(rm.list_resources()[0])
+            for i in range(len(rm.list_resources())):
+                self.mybtn.addItem(rm.list_resources()[i])
         if mystr == 'Gerador de funções':
-            porta = serial.tools.list_ports.comports()
-            self.mybtn.addItem(porta[0].device)
+            portas = serial.tools.list_ports.comports()
+            for j in range(len(serial.tools.list_ports.comports())):
+                self.mybtn.addItem(portas[j].device)
         self.myObj.addWidget(self.mydevice)
         self.myObj.addWidget(self.mybtn)
         self.setLayout(self.myObj)
