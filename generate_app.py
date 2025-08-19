@@ -1,4 +1,5 @@
 from PyQt5.QtWidgets import QMainWindow, QMenuBar, QStackedWidget, QAction
+from PyQt5.QtGui import QIcon
 from serial_execution import serial_page
 from sample import sample_page
 from dso2d15 import dso2d15_page
@@ -9,11 +10,10 @@ from test import test_page
 class generate_main(QMainWindow):
     def __init__(self):
         super().__init__()
-
         self.setWindowTitle("OscLink")
         self.resize(750, 750)
                 # Criação do QStackedWidget para alternar páginas
-        
+    
         self.stack = QStackedWidget()
         self.setCentralWidget(self.stack)
         
