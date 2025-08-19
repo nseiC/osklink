@@ -1,5 +1,6 @@
 import pyvisa
 import serial.tools.list_ports 
+import time
 from PyQt5.QtWidgets import (QWidget, QLabel, QLayout, QVBoxLayout, QHBoxLayout, QPushButton,
 QComboBox)
 
@@ -23,7 +24,20 @@ class serial_page(QWidget):
         self.mylayout.addWidget(self.applybtn)
         self.setLayout(self.mylayout)
         
-            
+        self.applybtn.clicked.connect(self.connect_to_devices)
+        
+    
+    def connect_to_devices(self):
+        self.rm = pyvisa.ResourceManager()
+        self.myscope=self.rm.open_resource(self.scope.mybtn.currentText())
+        idn = self.myscope.query("*IDN?")
+        print("Resposta do dispositivo:", idn)
+        self.mygenerator = serial.Serial(self.generator.mybtn.currentText(), baudrate=115200, timeout=1)
+        time.sleep(2)
+        self.mygenerator.write('SYSTem:BEEPer:IMMediate\n'.encode())
+        resposta = self.mygenerator.readline().decode('utf-8').strip()
+        print("Recebido:", self.generator.mybtn.currentText())
+        
 class device_option(QWidget):
     def __init__(self,mystr):
         super().__init__()
@@ -31,10 +45,10 @@ class device_option(QWidget):
         self.myObj = QHBoxLayout()
         self.mydevice = QLabel(self.mystr)
         self.mybtn = QComboBox()
+        self.rm = pyvisa.ResourceManager()
         if mystr == 'Osciloscópio':
-            rm = pyvisa.ResourceManager()
-            for i in range(len(rm.list_resources())):
-                self.mybtn.addItem(rm.list_resources()[i])
+            for i in range(len(self.rm.list_resources())):
+                self.mybtn.addItem(self.rm.list_resources()[i])
         if mystr == 'Gerador de funções':
             portas = serial.tools.list_ports.comports()
             for j in range(len(serial.tools.list_ports.comports())):
@@ -42,3 +56,4 @@ class device_option(QWidget):
         self.myObj.addWidget(self.mydevice)
         self.myObj.addWidget(self.mybtn)
         self.setLayout(self.myObj)
+        
