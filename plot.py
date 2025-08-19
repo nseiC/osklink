@@ -1,9 +1,9 @@
 from PyQt5.QtWidgets import (QWidget, QLabel, QLayout, QVBoxLayout, QLineEdit)
 
 class plot_page(QWidget):
-    def __init__(self):
+    def __init__(self,main_page):
         super().__init__()
-        
+        self.main_page = main_page
         self.setWindowTitle("Geração de gráficos")
         self.resize(750, 750)
 

@@ -2,9 +2,9 @@ from PyQt5.QtWidgets import (QWidget, QLabel, QLayout, QVBoxLayout, QHBoxLayout,
 QComboBox)
 
 class test_page(QWidget):
-    def __init__(self):
+    def __init__(self,main_page):
         super().__init__()
-        
+        self.main_page = main_page
         self.setWindowTitle("Teste")
         self.resize(750, 750)
        

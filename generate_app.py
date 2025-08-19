@@ -13,7 +13,6 @@ class generate_main(QMainWindow):
         self.setWindowTitle("OscLink")
         self.resize(750, 750)
                 # Criação do QStackedWidget para alternar páginas
-    
         self.stack = QStackedWidget()
         self.setCentralWidget(self.stack)
         
@@ -21,17 +20,17 @@ class generate_main(QMainWindow):
         self.setMenuBar(self.menu)
         
         
-        self.serial_page = serial_page()
+        self.serial_page = serial_page(self)
         self.stack.addWidget(self.serial_page)
-        self.sample_page = sample_page()
+        self.sample_page = sample_page(self)
         self.stack.addWidget(self.sample_page)
-        self.dso2d15_page = dso2d15_page()
+        self.dso2d15_page = dso2d15_page(self)
         self.stack.addWidget(self.dso2d15_page)
-        self.impedance_page = impedance_page()
+        self.impedance_page = impedance_page(self)
         self.stack.addWidget(self.impedance_page)
-        self.plot_page = plot_page()
+        self.plot_page = plot_page(self)
         self.stack.addWidget(self.plot_page)
-        self.test_page = test_page()
+        self.test_page = test_page(self)
         self.stack.addWidget(self.test_page)
         
         serial_action = QAction("Serial", self)

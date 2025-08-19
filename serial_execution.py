@@ -5,12 +5,12 @@ from PyQt5.QtWidgets import (QWidget, QLabel, QLayout, QVBoxLayout, QHBoxLayout,
 QComboBox)
 
 class serial_page(QWidget):
-    def __init__(self):
+    def __init__(self,main_page):
         super().__init__()
         
         self.setWindowTitle("Serial")
         self.resize(750, 750)
-
+        self.main_page = main_page
             # Criando um label central
         self.scope = device_option("Osciloscópio")
         self.generator = device_option("Gerador de funções")
@@ -33,10 +33,7 @@ class serial_page(QWidget):
         idn = self.myscope.query("*IDN?")
         print("Resposta do dispositivo:", idn)
         self.mygenerator = serial.Serial(self.generator.mybtn.currentText(), baudrate=115200, timeout=1)
-        time.sleep(2)
         self.mygenerator.write('SYSTem:BEEPer:IMMediate\n'.encode())
-        resposta = self.mygenerator.readline().decode('utf-8').strip()
-        print("Recebido:", self.generator.mybtn.currentText())
         
 class device_option(QWidget):
     def __init__(self,mystr):

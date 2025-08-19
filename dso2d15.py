@@ -1,9 +1,9 @@
 from PyQt5.QtWidgets import QWidget, QLabel, QLayout, QVBoxLayout
 
 class dso2d15_page(QWidget):
-    def __init__(self):
+    def __init__(self,main_page):
         super().__init__()
-        
+        self.main_page = main_page
         self.setWindowTitle("DSO2D15")
         self.resize(750, 750)
 
