@@ -85,17 +85,20 @@ class scope():
         super().__init__()
         self.serial = []
         self.settings = {
-            "set_time_scale":"HORizontal:DELay:SCAle", #seta CH1 para senoide
+            "set_time_scale":"*HORizontal:DELay:SCAle", #seta CH1 para senoide
         }
         self.time_base=[2.5e-9,5e-9,1e-8,2.5e-8,5e-8,1e-7,2.5e-7,5e-7,1e-6,2.5e-6,5e-6,1e-5,2.5e-5,5e-5,0.0001,0.00025,0.0005,0.001,0.0025,0.005,0.01,0.025,0.05,0.1,0.25,0.5,1,2.5,5,10,25,50]
         
     def set_scale(self,frequency):
         var = self.time_base[0]
         for i in range(len(self.time_base)):
-            if i == 0: var = self.time_base [len(self.time_base)-1]
+            if i == 0: 
+                var = self.time_base [len(self.time_base)-1]
+                print(f"var:{var}")
             else: 
                 if 3*1/frequency-self.time_base[len(self.time_base)-1-i]*9<var:
                     var = self.time_base[len(self.time_base)-1-i]
+                    print(f"var:{var}")
                 elif 3*1/frequency-self.time_base[len(self.time_base)-1-i]*9 < 0:
-                    self.serial.write(self.settings["set_frequency"] + b" " + str(var).encode())
+                    self.serial.query(self.settings["set_frequency"] + b" " + str(var).encode())
                     break
