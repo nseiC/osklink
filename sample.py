@@ -5,12 +5,13 @@ import serial
 import time
 
 class sample_page(QWidget):
-    def __init__(self,main_page,generator):
+    def __init__(self,main_page,generator,scope):
         super().__init__()
         self.main_page = main_page
         self.setWindowTitle("Amostragem")
         self.resize(750, 750)
         self.generator = generator
+        self.scope = scope
         self.samples = sample_option("Amostras")
         self.vin = sample_option("Tensão de entrada")
         self.f1 = sample_option("Frequência inicial")
@@ -41,11 +42,13 @@ class sample_page(QWidget):
     def terminal_execution(self):
         self.get_values()
         self.compute_frequencies()
-        self.generator.beep()
+        self.generator.open_channel()
+        self.generator.set_amplitude(self.initial_voltage)
         iterator = 0
         for i in range(len(self.array_of_frequencies)):
             self.generator.set_frequency(self.array_of_frequencies[iterator])
             self.generator.beep()
+            self.scope.set_scale(self.array_of_frequencies[iterator])
             time.sleep(1)
             iterator += 1
         #print(f"Numero de amostras,{self.number_of_samples}\n")
