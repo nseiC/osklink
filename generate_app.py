@@ -22,7 +22,7 @@ class generate_main(QMainWindow):
         
         self.serial_page = serial_page(self)
         self.stack.addWidget(self.serial_page)
-        self.sample_page = sample_page(self)
+        self.sample_page = sample_page(self,self.serial_page.generator)
         self.stack.addWidget(self.sample_page)
         self.dso2d15_page = dso2d15_page(self)
         self.stack.addWidget(self.dso2d15_page)

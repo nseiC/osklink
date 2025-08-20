@@ -12,28 +12,29 @@ class serial_page(QWidget):
         self.resize(750, 750)
         self.main_page = main_page
             # Criando um label central
-        self.scope = device_option("Osciloscópio")
-        self.generator = device_option("Gerador de funções")
-        self.dso2d15 = device_option("DSO2D15")
-        self.arduino = device_option("Arduino")
+        self.scope_options = device_option("Osciloscópio")
+        self.generator_options = device_option("Gerador de funções")
+        
+        self.generator = generator()
+        
         self.applybtn = QPushButton("Conectar")
         
         self.mylayout = QVBoxLayout()
-        self.mylayout.addWidget(self.scope)
-        self.mylayout.addWidget(self.generator)
+        self.mylayout.addWidget(self.scope_options)
+        self.mylayout.addWidget(self.generator_options)
         self.mylayout.addWidget(self.applybtn)
         self.setLayout(self.mylayout)
-        self.mygenerator = []
         self.applybtn.clicked.connect(self.connect_to_devices)
         
     
     def connect_to_devices(self):
         self.rm = pyvisa.ResourceManager()
-        self.myscope=self.rm.open_resource(self.scope.mybtn.currentText())
+        self.myscope=self.rm.open_resource(self.scope_options.mybtn.currentText())
         idn = self.myscope.query("*IDN?")
         print("Resposta do dispositivo:", idn)
-        self.mygenerator = serial.Serial(self.generator.mybtn.currentText(), baudrate=115200, timeout=1)
-        self.mygenerator.write('SYSTem:BEEPer:IMMediate\n'.encode())
+        self.generator.serial = serial.Serial(self.generator_options.mybtn.currentText(), baudrate=115200, timeout=1)
+        self.generator.beep()
+        #self.generator.write('SYSTem:BEEPer:IMMediate\n'.encode())
         
 class device_option(QWidget):
     def __init__(self,mystr):
@@ -54,3 +55,23 @@ class device_option(QWidget):
         self.myObj.addWidget(self.mybtn)
         self.setLayout(self.myObj)
         
+class generator():
+    def __init__(self):
+        super().__init__()
+        self.serial = []
+        self.settings = {
+            "set_sine":"SOURce1:FUNCtion SINesoid", #seta CH1 para senoide
+            "set_frequency": b"SOURce1:FREQuency", #seguido disso, vem a frequência
+            "set_amplitude": b"SOURce1:VOLTage", # seguido disso, vem a amplitude
+            "allow_channel_1": b"OUTPut1 ON'",
+            "beep":b"SYSTem:BEEPer:IMMediate"
+        }
+        
+    def set_frequency(self,frequency):
+        self.serial.write(self.settings["set_frequency"] + b" " + str(frequency).encode() + b"\n")
+        
+    def beep(self):
+        self.serial.write(self.settings["beep"] + b"\n")
+        
+    
+    

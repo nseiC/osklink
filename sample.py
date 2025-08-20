@@ -1,14 +1,16 @@
 from PyQt5.QtWidgets import (QWidget, QPushButton ,QLabel, QLayout, QVBoxLayout, QLineEdit, QHBoxLayout)
 from numpy import logspace,log10
 import threading
+import serial
+import time
 
 class sample_page(QWidget):
-    def __init__(self,main_page):
+    def __init__(self,main_page,generator):
         super().__init__()
         self.main_page = main_page
         self.setWindowTitle("Amostragem")
         self.resize(750, 750)
-
+        self.generator = generator
         self.samples = sample_option("Amostras")
         self.vin = sample_option("Tensão de entrada")
         self.f1 = sample_option("Frequência inicial")
@@ -24,9 +26,7 @@ class sample_page(QWidget):
         self.mylayout.addWidget(self.f2)
         self.mylayout.addWidget(self.buttons)
         
-        self.generator = generator(self.main_page.serial_page.mygenerator)
-        
-        
+        self.array_of_frequencies = []
         self.setLayout(self.mylayout)
     
     def get_values(self):
@@ -41,8 +41,13 @@ class sample_page(QWidget):
     def terminal_execution(self):
         self.get_values()
         self.compute_frequencies()
-        #while(1):
-            #return
+        self.generator.beep()
+        iterator = 0
+        for i in range(len(self.array_of_frequencies)):
+            self.generator.set_frequency(self.array_of_frequencies[iterator])
+            self.generator.beep()
+            time.sleep(1)
+            iterator += 1
         #print(f"Numero de amostras,{self.number_of_samples}\n")
         #print(f"Frequencias,{self.array_of_frequencies}\n")
         
@@ -76,18 +81,4 @@ class sample_buttons(QWidget):
     def start_sample(self):
         self.mypage.terminal_execution()
         
-class generator():
-    def __init__(self,generator):
-        super().__init__()
-        self.generator = generator
-        self.generator_settings = {
-            "set_sine":"SOURce1:FUNCtion SINesoid", #seta CH1 para senoide
-            "set_frequency": "SOURce1:FREQuency", #seguido disso, vem a frequência
-            "set_amplitude": "SOURce1:VOLTage", # seguido disso, vem a amplitude
-            "allow_channel_1": "OUTPut1 ON'",
-            "beep":"SYSTem:BEEPer:IMMediate"
-        }
-        
-    
-    
     
