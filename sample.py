@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import (QWidget, QPushButton ,QLabel, QLayout, QVBoxLayout, QLineEdit, QHBoxLayout)
-from numpy import logspace
-
+from numpy import logspace,log10
+import threading
 
 class sample_page(QWidget):
     def __init__(self,main_page):
@@ -24,7 +24,7 @@ class sample_page(QWidget):
         self.mylayout.addWidget(self.f2)
         self.mylayout.addWidget(self.buttons)
         
-        self.generator = generator()
+        self.generator = generator(self.main_page.serial_page.mygenerator)
         
         
         self.setLayout(self.mylayout)
@@ -36,11 +36,16 @@ class sample_page(QWidget):
         self.final_frequency = self.f2.text.text()
         
     def compute_frequencies(self):
-        self.array_of_frequencies = logspace(self.initial_frequency,self.final_frequency,self.number_of_samples)
+        self.array_of_frequencies = logspace(log10(float(self.initial_frequency)),log10(float(self.final_frequency)),int(self.number_of_samples),endpoint=True,base=10)
         
     def terminal_execution(self):
-        print("cheguei!")
-    
+        self.get_values()
+        self.compute_frequencies()
+        #while(1):
+            #return
+        #print(f"Numero de amostras,{self.number_of_samples}\n")
+        #print(f"Frequencias,{self.array_of_frequencies}\n")
+        
 class sample_option(QWidget):
     def __init__(self,mystr):
         super().__init__()
@@ -48,6 +53,7 @@ class sample_option(QWidget):
         self.bar = QHBoxLayout()
         self.label = QLabel(self.mystr)
         self.text = QLineEdit()
+        self.text.setFixedSize(200, 40)
         self.bar.addWidget(self.label)
         self.bar.addWidget(self.text)
         self.setLayout(self.bar)
@@ -71,9 +77,9 @@ class sample_buttons(QWidget):
         self.mypage.terminal_execution()
         
 class generator():
-    def __init__(self):
+    def __init__(self,generator):
         super().__init__()
-        
+        self.generator = generator
         self.generator_settings = {
             "set_sine":"SOURce1:FUNCtion SINesoid", #seta CH1 para senoide
             "set_frequency": "SOURce1:FREQuency", #seguido disso, vem a frequência
@@ -81,6 +87,7 @@ class generator():
             "allow_channel_1": "OUTPut1 ON'",
             "beep":"SYSTem:BEEPer:IMMediate"
         }
+        
     
     
     

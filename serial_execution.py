@@ -23,7 +23,7 @@ class serial_page(QWidget):
         self.mylayout.addWidget(self.generator)
         self.mylayout.addWidget(self.applybtn)
         self.setLayout(self.mylayout)
-        
+        self.mygenerator = []
         self.applybtn.clicked.connect(self.connect_to_devices)
         
     
