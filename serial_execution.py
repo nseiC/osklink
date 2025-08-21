@@ -31,7 +31,9 @@ class serial_page(QWidget):
     def connect_to_devices(self):
         self.rm = pyvisa.ResourceManager()
         self.myscope=self.rm.open_resource(self.scope_options.mybtn.currentText())
+        self.scope.serial = self.myscope
         idn = self.myscope.query("*IDN?")
+        #self.myscope.query("HORizontal:MAIn:SCAle 50")
         print("Resposta do dispositivo:", idn)
         self.generator.serial = serial.Serial(self.generator_options.mybtn.currentText(), baudrate=115200, timeout=1)
         self.generator.beep()
@@ -85,20 +87,50 @@ class scope():
         super().__init__()
         self.serial = []
         self.settings = {
-            "set_time_scale":"*HORizontal:DELay:SCAle", #seta CH1 para senoide
+            "set_time_scale":"HORizontal:MAIn:SCAle", #seta CH1 para senoide
+            "set_voltage_scale": "CH1:SCAle",
+            "min_voltage_scale": 0.005,            # limite mínimo V/div
+            "max_voltage_scale": 10          
         }
-        self.time_base=[2.5e-9,5e-9,1e-8,2.5e-8,5e-8,1e-7,2.5e-7,5e-7,1e-6,2.5e-6,5e-6,1e-5,2.5e-5,5e-5,0.0001,0.00025,0.0005,0.001,0.0025,0.005,0.01,0.025,0.05,0.1,0.25,0.5,1,2.5,5,10,25,50]
+        self.time_base=[2.5E-9,5E-9,1E-8,2.5E-8,5E-8,1E-7,2.5E-7,5E-7,1E-6,2.5E-6,5E-6,1E-5,2.5E-5,5E-5,0.0001,0.00025,0.0005,0.001,0.0025,0.005,0.01,0.025,0.05,0.1,0.25,0.5,1,2.5,5,10,25,50]
         
-    def set_scale(self,frequency):
-        var = self.time_base[0]
-        for i in range(len(self.time_base)):
-            if i == 0: 
-                var = self.time_base [len(self.time_base)-1]
-                print(f"var:{var}")
-            else: 
-                if 3*1/frequency-self.time_base[len(self.time_base)-1-i]*9<var:
-                    var = self.time_base[len(self.time_base)-1-i]
-                    print(f"var:{var}")
-                elif 3*1/frequency-self.time_base[len(self.time_base)-1-i]*9 < 0:
-                    self.serial.query(self.settings["set_frequency"] + b" " + str(var).encode())
-                    break
+    def set_scale(self, frequency, cycles=3):
+        T = 1.0 / frequency
+        tb_min = (cycles * T) / 10.0
+        var = next((tb for tb in self.time_base if tb >= tb_min), self.time_base[-1])
+        cmd = f"{self.settings['set_time_scale']} {var:.6E}"
+        print("Enviando:", cmd)
+        self.serial.write(cmd)
+        atual = self.serial.query("HORizontal:MAIn:SCAle?")
+        print("Base atual:", atual)
+
+    def set_voltage_scale(self, margin=1.2):
+        """
+        Ajusta a escala vertical do canal 1 automaticamente baseado na tensão de pico.
+        margin: fator multiplicativo para garantir que o sinal caiba na tela (~20% extra)
+        """
+        assert self.serial is not None, "scope.serial não foi configurado"
+
+        # 1️⃣ Lê a tensão de pico atual
+        vpp_str = self.serial.query("MEASUrement:VPP? CH1")
+        try:
+            vpp = float(vpp_str)
+        except:
+            print("Erro ao ler Vpp, usando 1V como fallback")
+            vpp = 1.0
+
+        # 2️⃣ Calcula a escala necessária (10 divisões verticais na tela)
+        scale = (vpp / 10) * margin
+
+        # 3️⃣ Confere limites mínimo e máximo
+        scale = max(self.settings['min_voltage_scale'], min(scale, self.settings['max_voltage_scale']))
+
+        # 4️⃣ Envia o comando
+        cmd = f"{self.settings['set_voltage_scale']} {scale:.6E}"
+        print(f"Ajustando escala de tensão: Vpp={vpp:.3f}V → V/div={scale:.6E}")
+        self.serial.write(cmd)
+
+        # 5️⃣ Consulta para confirmar
+        atual = self.serial.query(f"{self.settings['set_voltage_scale']}?")
+        print("Escala vertical atual:", atual)
+        return scale, float(atual)
