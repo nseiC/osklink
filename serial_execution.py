@@ -1,136 +1,193 @@
 import pyvisa
 import serial.tools.list_ports 
 import time
-from PyQt5.QtWidgets import (QWidget, QLabel, QLayout, QVBoxLayout, QHBoxLayout, QPushButton,
-QComboBox)
+from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout, QPushButton, QComboBox
 
 class serial_page(QWidget):
-    def __init__(self,main_page):
+    def __init__(self, main_page):
         super().__init__()
-        
         self.setWindowTitle("Serial")
         self.resize(750, 750)
         self.main_page = main_page
-            # Criando um label central
+
         self.scope_options = device_option("Osciloscópio")
         self.generator_options = device_option("Gerador de funções")
-        
+
         self.generator = generator()
         self.scope = scope()
-        
+
         self.applybtn = QPushButton("Conectar")
-        
+
         self.mylayout = QVBoxLayout()
         self.mylayout.addWidget(self.scope_options)
         self.mylayout.addWidget(self.generator_options)
         self.mylayout.addWidget(self.applybtn)
         self.setLayout(self.mylayout)
         self.applybtn.clicked.connect(self.connect_to_devices)
-        
-    
+
     def connect_to_devices(self):
         self.rm = pyvisa.ResourceManager()
-        self.myscope=self.rm.open_resource(self.scope_options.mybtn.currentText())
+        self.myscope = self.rm.open_resource(self.scope_options.mybtn.currentText())
         self.scope.serial = self.myscope
         idn = self.myscope.query("*IDN?")
-        #self.myscope.query("HORizontal:MAIn:SCAle 50")
         print("Resposta do dispositivo:", idn)
-        self.generator.serial = serial.Serial(self.generator_options.mybtn.currentText(), baudrate=115200, timeout=1)
+
+        self.generator.serial = serial.Serial(self.generator_options.mybtn.currentText(),
+                                              baudrate=115200, timeout=1)
         self.generator.beep()
-        #self.generator.write('SYSTem:BEEPer:IMMediate\n'.encode())
-        
+
+
 class device_option(QWidget):
-    def __init__(self,mystr):
+    def __init__(self, mystr):
         super().__init__()
-        self.mystr=mystr
+        self.mystr = mystr
         self.myObj = QHBoxLayout()
         self.mydevice = QLabel(self.mystr)
         self.mybtn = QComboBox()
         self.rm = pyvisa.ResourceManager()
+
         if mystr == 'Osciloscópio':
-            for i in range(len(self.rm.list_resources())):
-                self.mybtn.addItem(self.rm.list_resources()[i])
-        if mystr == 'Gerador de funções':
+            for res in self.rm.list_resources():
+                self.mybtn.addItem(res)
+        elif mystr == 'Gerador de funções':
             portas = serial.tools.list_ports.comports()
-            for j in range(len(serial.tools.list_ports.comports())):
-                self.mybtn.addItem(portas[j].device)
+            for p in portas:
+                self.mybtn.addItem(p.device)
+
         self.myObj.addWidget(self.mydevice)
         self.myObj.addWidget(self.mybtn)
         self.setLayout(self.myObj)
-        
-class generator():
+
+
+class generator:
     def __init__(self):
-        super().__init__()
-        self.serial = []
+        self.serial = None
         self.settings = {
-            "set_sine":"SOURce1:FUNCtion SINesoid", #seta CH1 para senoide
-            "set_frequency": b"SOURce1:FREQuency", #seguido disso, vem a frequência
-            "set_amplitude": b"SOURce1:VOLTage", # seguido disso, vem a amplitude
+            "set_sine": "SOURce1:FUNCtion SINesoid",
+            "set_frequency": b"SOURce1:FREQuency",
+            "set_amplitude": b"SOURce1:VOLTage",
             "allow_channel_1": b"OUTPut1 ON",
-            "beep":b"SYSTem:BEEPer:IMMediate"
+            "beep": b"SYSTem:BEEPer:IMMediate"
         }
-        
-    def set_frequency(self,frequency):
+
+    def set_frequency(self, frequency):
         self.serial.write(self.settings["set_frequency"] + b" " + str(frequency).encode() + b"\n")
-        
+
     def beep(self):
         self.serial.write(self.settings["beep"] + b"\n")
-        
-    def set_amplitude(self,amplitude):
+
+    def set_amplitude(self, amplitude):
         self.serial.write(self.settings["set_amplitude"] + b" " + str(amplitude).encode() + b"\n")
-        
+
     def open_channel(self):
         self.serial.write(self.settings["allow_channel_1"] + b"\n")
-        
-class scope():
+
+
+class scope:
     def __init__(self):
-        super().__init__()
-        self.serial = []
-        self.settings = {
-            "set_time_scale":"HORizontal:MAIn:SCAle", #seta CH1 para senoide
-            "set_voltage_scale": "CH1:SCAle",
-            "min_voltage_scale": 0.005,            # limite mínimo V/div
-            "max_voltage_scale": 10          
-        }
-        self.time_base=[2.5E-9,5E-9,1E-8,2.5E-8,5E-8,1E-7,2.5E-7,5E-7,1E-6,2.5E-6,5E-6,1E-5,2.5E-5,5E-5,0.0001,0.00025,0.0005,0.001,0.0025,0.005,0.01,0.025,0.05,0.1,0.25,0.5,1,2.5,5,10,25,50]
-        
+        self.serial = None
+        self.vert_divs = 8
+        self.min_voltage_scale = 0.005
+        self.max_voltage_scale = 10.0
+        self.time_base = [
+            1e-9, 2e-9, 5e-9, 1e-8, 2e-8, 5e-8, 1e-7, 2e-7, 5e-7,
+            1e-6, 2e-6, 5e-6, 1e-5, 2e-5, 5e-5, 1e-4, 2e-4, 5e-4,
+            1e-3, 2e-3, 5e-3, 1e-2, 2e-2, 5e-2, 1e-1, 2e-1, 5e-1,
+            1.0, 2.0, 5.0, 10.0, 20.0, 50.0
+        ]
+
     def set_scale(self, frequency, cycles=3):
         T = 1.0 / frequency
         tb_min = (cycles * T) / 10.0
         var = next((tb for tb in self.time_base if tb >= tb_min), self.time_base[-1])
-        cmd = f"{self.settings['set_time_scale']} {var:.6E}"
-        print("Enviando:", cmd)
-        self.serial.write(cmd)
+        self.serial.write(f"HORizontal:MAIn:SCAle {var:.6E}")
         atual = self.serial.query("HORizontal:MAIn:SCAle?")
         print("Base atual:", atual)
 
-    def set_voltage_scale(self, margin=1.2):
-        """
-        Ajusta a escala vertical do canal 1 automaticamente baseado na tensão de pico.
-        margin: fator multiplicativo para garantir que o sinal caiba na tela (~20% extra)
-        """
-        assert self.serial is not None, "scope.serial não foi configurado"
+    def set_voltage_scale_generic(self, ch, target_fill=0.9, tol=0.03, max_iters=5, samples=3):
+        s = self.serial
+        s.write(f"MEASUrement:IMMed:SOUrce {ch}")
+        s.write("MEASUrement:IMMed:TYPe PK2pk")
 
-        # 1️⃣ Lê a tensão de pico atual
-        vpp_str = self.serial.query("MEASUrement:VPP? CH1")
+        def read_vpp_avg(n=samples):
+            vals = []
+            for _ in range(n):
+                try:
+                    v = float(s.query("MEASUrement:IMMed:VALue?"))
+                    if 0 < v < 9.9e36:
+                        vals.append(v)
+                except:
+                    pass
+                time.sleep(0.05)
+            return sum(vals)/len(vals) if vals else None
+
+        for _ in range(max_iters):
+            vpp = read_vpp_avg()
+            if not vpp: return None
+            desired = vpp / (target_fill * self.vert_divs)
+            desired = max(self.min_voltage_scale, min(desired, self.max_voltage_scale))
+            try:
+                curr = float(s.query(f"{ch}:SCAle?"))
+            except:
+                curr = None
+            if curr and abs(desired - curr)/curr <= tol:
+                return curr
+            s.write(f"{ch}:SCAle {desired:.6E}")
+            time.sleep(0.15)
         try:
-            vpp = float(vpp_str)
+            return float(s.query(f"{ch}:SCAle?"))
         except:
-            print("Erro ao ler Vpp, usando 1V como fallback")
-            vpp = 1.0
+            return None
 
-        # 2️⃣ Calcula a escala necessária (10 divisões verticais na tela)
-        scale = (vpp / 10) * margin
+    def capture_waveform(self, ch="CH2", frequency=None, filename="waveforms.txt", append=True):
+        import numpy as np
+        import datetime
 
-        # 3️⃣ Confere limites mínimo e máximo
-        scale = max(self.settings['min_voltage_scale'], min(scale, self.settings['max_voltage_scale']))
+        s = self.serial
+        s.write(f"DATa:SOUrce {ch}")
+        s.write("DATa:ENCdg ASCII")
+        s.write("DATa:WIDth 1")
 
-        # 4️⃣ Envia o comando
-        cmd = f"{self.settings['set_voltage_scale']} {scale:.6E}"
-        print(f"Ajustando escala de tensão: Vpp={vpp:.3f}V → V/div={scale:.6E}")
-        self.serial.write(cmd)
+        ymult = float(s.query("WFMPRE:YMULT?"))
+        yzero = float(s.query("WFMPRE:YZERO?"))
+        yoff = float(s.query("WFMPRE:YOFF?"))
+        xincr = float(s.query("WFMPRE:XINCR?"))
+        xzero = float(s.query("WFMPRE:XZERO?"))
 
-        # 5️⃣ Consulta para confirmar
-        atual = self.serial.query(f"{self.settings['set_voltage_scale']}?")
-        print("Escala vertical atual:", atual)
-        return scale, float(atual)
+        raw_data = s.query("CURVe?")
+        raw_points = np.array([float(p) for p in raw_data.split(",") if p.strip() != ""])
+
+        voltages = (raw_points - yoff) * ymult + yzero
+        times = np.arange(len(voltages)) * xincr + xzero
+
+        mode = "a" if append else "w"
+        with open(filename, mode) as f:
+            f.write(f"# Frequencia: {frequency} Hz ({ch}) - Captura em {datetime.datetime.now()}\n")
+            f.write("# Tempo(s),Tensao(V);\n")
+            for t, v in zip(times, voltages):
+                f.write(f"{t:.9e},{v:.9e};\n")
+            f.write("\n")
+        print(f"✅ Forma de onda {ch} salva em '{filename}' com {len(voltages)} pontos.")
+        return times, voltages
+
+    def save_waveform_cube(self, filename="C:\waveform_cube.txt", freq_list=None,
+                            voltage_data_list=None, time_list=None, append=False):
+        import numpy as np
+        import datetime
+
+        if freq_list is None or voltage_data_list is None:
+            print("⚠ freq_list ou voltage_data_list não fornecido")
+            return
+
+        mode = "a" if append else "w"
+        with open(filename, mode) as f:
+            f.write(f"# Cubo de dados salvo em {datetime.datetime.now()}\n")
+            for i, freq in enumerate(freq_list):
+                voltages = np.array(voltage_data_list[i], dtype=float)
+                times = np.array(time_list[i], dtype=float) if time_list else np.arange(len(voltages), dtype=float)
+                f.write(f"# Frequency: {freq} Hz\n")
+                f.write("# Tempo(s),Tensao(V);\n")
+                for t, v in zip(times, voltages):
+                    f.write(f"{t:.9e},{v:.9e};\n")
+                f.write("\n")
+        print(f"✅ Cubo de dados salvo em '{filename}' com {len(freq_list)} frequências.")
