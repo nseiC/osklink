@@ -1,6 +1,7 @@
 from PyQt5.QtWidgets import QWidget, QPushButton, QLabel, QVBoxLayout, QLineEdit, QHBoxLayout
 from numpy import logspace, log10
 import time
+import pandas as pd
 
 class sample_page(QWidget):
     def __init__(self, main_page, generator, scope):
@@ -43,35 +44,53 @@ class sample_page(QWidget):
                                              log10(self.final_frequency),
                                              self.number_of_samples, endpoint=True, base=10)
 
-    def terminal_execution(self):
-        self.get_values()
-        self.compute_frequencies()
-        self.generator.open_channel()
-        self.generator.set_amplitude(self.initial_voltage)
+def terminal_execution(self):
+    self.get_values()
+    self.compute_frequencies()
+    self.generator.open_channel()
+    self.generator.set_amplitude(self.initial_voltage)
 
-        voltages_list = []
-        time_list = []
+    df_final = pd.DataFrame()
 
-        for f in self.array_of_frequencies:
-            self.generator.set_frequency(f)
-            self.generator.beep()
-            self.scope.set_scale(f)
-            self.scope.set_voltage_scale_generic("CH1")
-            self.scope.set_voltage_scale_generic("CH2")
-            time.sleep(1)
-            
-            times1, voltages1 = self.scope.capture_waveform(ch="CH1", frequency=f, filename=self.archive, append=True)
-            voltages_list.append(voltages1)
-            time_list.append(times1)
+    for f in self.array_of_frequencies:
+        self.generator.set_frequency(f)
+        self.generator.beep()
+        self.scope.set_scale(f)
+        self.scope.set_voltage_scale_generic("CH1")
+        self.scope.set_voltage_scale_generic("CH2")
+        time.sleep(1)
 
-            times2, voltages2 = self.scope.capture_waveform(ch="CH2", frequency=f, filename=self.archive, append=True)
-            voltages_list.append(voltages2)
-            time_list.append(times2)
+        # captura das formas de onda
+        times1, voltages1 = self.scope.capture_waveform(ch="CH1", frequency=f, filename=self.archive, append=True)
+        times2, voltages2 = self.scope.capture_waveform(ch="CH2", frequency=f, filename=self.archive, append=True)
 
-        self.scope.save_waveform_cube(filename=self.archive + "a.txt",
-                                      freq_list=self.array_of_frequencies,
-                                      voltage_data_list=voltages_list,
-                                      time_list=time_list)
+        # garantir mesmo tamanho
+        min_len = min(len(times1), len(times2))
+        times1, voltages1, voltages2 = times1[:min_len], voltages1[:min_len], voltages2[:min_len]
+
+        # dataframe para esta frequência
+        df_freq = pd.DataFrame({
+            f"tempo({f:.1f}Hz)": times1,
+            f"CH1({f:.1f}Hz)": voltages1,
+            f"CH2({f:.1f}Hz)": voltages2
+        })
+
+        # concatena lado a lado
+        if df_final.empty:
+            df_final = df_freq
+        else:
+            df_final = pd.concat([df_final, df_freq], axis=1)
+
+    # salvar no formato solicitado
+    with open("planilha_frequencias.txt", "w", encoding="utf-8") as arq:
+        # cabeçalho
+        arq.write(",".join(df_final.columns) + ";\n")
+        # linhas
+        for _, row in df_final.iterrows():
+            linha = ",".join(str(v) for v in row.values) + ";"
+            arq.write(linha + "\n")
+
+    print("Gerado arquivo final: planilha_frequencias.txt")
 
 
 class sample_option(QWidget):
