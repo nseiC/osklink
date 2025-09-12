@@ -12,15 +12,18 @@ class serial_page(QWidget):
 
         self.scope_options = device_option("Osciloscópio")
         self.generator_options = device_option("Gerador de funções")
-
+        self.serial_device_options = device_option("Outro dispositivo serial")
+        
         self.generator = generator()
         self.scope = scope()
-
+        self.serial_device = other_serial_device()
+        
         self.applybtn = QPushButton("Conectar")
 
         self.mylayout = QVBoxLayout()
         self.mylayout.addWidget(self.scope_options)
         self.mylayout.addWidget(self.generator_options)
+        self.mylayout.addWidget(self.serial_device_options)
         self.mylayout.addWidget(self.applybtn)
         self.setLayout(self.mylayout)
         self.applybtn.clicked.connect(self.connect_to_devices)
@@ -53,7 +56,10 @@ class device_option(QWidget):
             portas = serial.tools.list_ports.comports()
             for p in portas:
                 self.mybtn.addItem(p.device)
-
+        elif mystr == 'Outro dispositivo serial':
+            portas = serial.tools.list_ports.comports()
+            for p in portas:
+                self.mybtn.addItem(p.device)
         self.myObj.addWidget(self.mydevice)
         self.myObj.addWidget(self.mybtn)
         self.setLayout(self.myObj)
@@ -170,24 +176,7 @@ class scope:
         print(f"✅ Forma de onda {ch} salva em '{filename}' com {len(voltages)} pontos.")
         return times, voltages
 
-    def save_waveform_cube(self, filename="C:\waveform_cube.txt", freq_list=None,
-                            voltage_data_list=None, time_list=None, append=False):
-        import numpy as np
-        import datetime
-
-        if freq_list is None or voltage_data_list is None:
-            print("⚠ freq_list ou voltage_data_list não fornecido")
-            return
-
-        mode = "a" if append else "w"
-        with open(filename, mode) as f:
-            f.write(f"# Cubo de dados salvo em {datetime.datetime.now()}\n")
-            for i, freq in enumerate(freq_list):
-                voltages = np.array(voltage_data_list[i], dtype=float)
-                times = np.array(time_list[i], dtype=float) if time_list else np.arange(len(voltages), dtype=float)
-                f.write(f"# Frequency: {freq} Hz\n")
-                f.write("# Tempo(s),Tensao(V);\n")
-                for t, v in zip(times, voltages):
-                    f.write(f"{t:.9e},{v:.9e};\n")
-                f.write("\n")
-        print(f"✅ Cubo de dados salvo em '{filename}' com {len(freq_list)} frequências.")
+    
+class other_serial_device:
+    def __init__(self):
+        self.serial = None
