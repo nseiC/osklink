@@ -81,16 +81,6 @@ class sample_page(QWidget):
             else:
                 df_final = pd.concat([df_final, df_freq], axis=1)
 
-    # salvar no formato solicitado
-        with open("C:\planilha_frequencias.txt", "w", encoding="utf-8") as arq:
-        # cabeçalho
-            arq.write(",".join(df_final.columns) + ";\n")
-        # linhas
-            for _, row in df_final.iterrows():
-                linha = ",".join(str(v) for v in row.values) + ";"
-                arq.write(linha + "\n")
-
-        print("Gerado arquivo final: planilha_frequencias.txt")
 
 
 class sample_option(QWidget):
