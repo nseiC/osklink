@@ -22,6 +22,13 @@ sudo udevadm control --reload-rules && sudo udevadm trigger
 Depois disso, desconecte e reconecte os cabos USB. Não é preciso instalar TekVISA nem NI-VISA (o TekVISA só existe
 para Windows): o `pyvisa-py` fala direto com o osciloscópio via USB.
 
+### Comunicação USB com o TBS 1102B
+
+O TBS declara endpoints USB de 64 bytes numa conexão high-speed, e nas portas xHCI do Linux as respostas maiores
+que 52 bytes chegam picotadas. O `pyvisa-py` não junta os pedaços e trava com timeout em `WFMPre?`/`CURVe?`.
+O `usbtmc_fix.py` corrige a leitura, e ao conectar o app destrava o osciloscópio caso uma leitura anterior tenha
+sido interrompida.
+
 Executar:
 
 ```bash

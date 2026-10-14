@@ -6,7 +6,7 @@ import numpy as np
 import sounddevice as sd
 import os
 import pyvisa  # pip install pyvisa
-from serial_execution import list_visa_resources
+from serial_execution import list_visa_resources, usbtmc_clear, set_usb_write_timeout
 
 
 class test_page(QWidget):
@@ -59,8 +59,10 @@ class test_page(QWidget):
                                     "Nenhum dispositivo VISA foi detectado.")
                 return
 
+            usbtmc_clear(instruments[0])
             scope = rm.open_resource(instruments[0])
             scope.timeout = 10000  # 10 segundos
+            set_usb_write_timeout(scope, 10000)
 
             idn = scope.query("*IDN?")
             print(f"📡 Conectado a: {idn.strip()}")

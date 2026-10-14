@@ -1,13 +1,61 @@
 import pyvisa
+import usbtmc_fix
 import serial.tools.list_ports 
 import time
 from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout, QPushButton, QComboBox
+
+usbtmc_fix.apply()
 
 
 def list_serial_ports():
     """Portas seriais reais. No Linux o comports() também lista /dev/ttyS0..31,
     que são portas legadas que não existem fisicamente (hwid 'n/a')."""
     return [p.device for p in serial.tools.list_ports.comports() if p.hwid != "n/a"]
+
+
+def usbtmc_clear(resource_name):
+    """Destrava um instrumento USBTMC que ficou com uma resposta pendente
+    (ex.: o app foi fechado no meio de um CURVe?). Sem isso o osciloscópio passa a
+    recusar qualquer comando com timeout até ser desligado. O clear() do pyvisa-py
+    não é suportado em USB, então os pedidos USBTMC são feitos direto via pyusb."""
+    if not resource_name.startswith("USB"):
+        return
+    try:
+        import usb.core
+        import usb.util
+        _, vid, pid, serial_number = resource_name.split("::")[:4]
+        dev = usb.core.find(idVendor=int(vid, 0), idProduct=int(pid, 0),
+                            custom_match=lambda d: d.serial_number == serial_number)
+        if dev is None:
+            return
+        if dev.is_kernel_driver_active(0):
+            dev.detach_kernel_driver(0)
+        usb.util.claim_interface(dev, 0)
+        intf = dev.get_active_configuration()[(0, 0)]
+        # INITIATE_CLEAR / CHECK_CLEAR_STATUS (USBTMC 1.0, seção 4.2.1.6 e 4.2.1.7)
+        dev.ctrl_transfer(0xA1, 5, 0, 0, 1, timeout=2000)
+        for _ in range(20):
+            if dev.ctrl_transfer(0xA1, 6, 0, 0, 2, timeout=2000)[0] != 2:
+                break
+            time.sleep(0.1)
+        for ep in intf:
+            if usb.util.endpoint_type(ep.bmAttributes) == usb.util.ENDPOINT_TYPE_BULK:
+                dev.clear_halt(ep.bEndpointAddress)
+        usb.util.release_interface(dev, 0)
+        usb.util.dispose_resources(dev)
+    except Exception as e:
+        print("Aviso: não foi possível limpar o USBTMC:", e)
+
+
+def set_usb_write_timeout(resource, timeout_ms):
+    """O pyvisa-py 0.7 ignora o timeout do VISA nas escritas USB e usa o padrão do
+    pyusb (1 s). O TBS demora mais que isso para aceitar comandos enquanto prepara o
+    CURVe?, e o timeout deixa o osciloscópio travado. Ajusta o timeout no pyusb."""
+    try:
+        session = resource.visalib.sessions[resource.session]
+        session.interface.usb_dev.default_timeout = timeout_ms
+    except (AttributeError, KeyError):
+        pass  # outro backend VISA (NI-VISA, TekVISA) ou recurso não USB
 
 
 def list_visa_resources(rm):
@@ -49,7 +97,12 @@ class serial_page(QWidget):
 
     def connect_to_devices(self):
         self.rm = pyvisa.ResourceManager()
-        self.myscope = self.rm.open_resource(self.scope_options.mybtn.currentText())
+        scope_name = self.scope_options.mybtn.currentText()
+        usbtmc_clear(scope_name)
+        self.myscope = self.rm.open_resource(scope_name)
+        # O padrão do pyvisa é 2 s, curto demais para o CURVe? do TBS via pyvisa-py
+        self.myscope.timeout = 10000
+        set_usb_write_timeout(self.myscope, 10000)
         self.scope.serial = self.myscope
         idn = self.myscope.query("*IDN?")
         print("Resposta do dispositivo:", idn)
@@ -168,7 +221,8 @@ class scope:
 
         s = self.serial
         s.write(f"DATa:SOUrce {ch}")
-        s.write("DATa:ENCdg ASCII")
+        # Binário (1 byte com sinal por ponto) é ~4x menor e bem mais rápido que ASCII
+        s.write("DATa:ENCdg RIBinary")
         s.write("DATa:WIDth 1")
 
         ymult = float(s.query("WFMPRE:YMULT?"))
@@ -177,8 +231,7 @@ class scope:
         xincr = float(s.query("WFMPRE:XINCR?"))
         xzero = float(s.query("WFMPRE:XZERO?"))
 
-        raw_data = s.query("CURVe?")
-        raw_points = np.array([float(p) for p in raw_data.split(",") if p.strip() != ""])
+        raw_points = s.query_binary_values("CURVe?", datatype="b", container=np.array).astype(float)
 
         voltages = (raw_points - yoff) * ymult + yzero
         times = np.arange(len(voltages)) * xincr + xzero
