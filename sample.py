@@ -1,5 +1,7 @@
-from PyQt5.QtWidgets import QWidget, QPushButton, QLabel, QVBoxLayout, QLineEdit, QHBoxLayout
+from PyQt5.QtWidgets import QWidget, QPushButton, QLabel, QVBoxLayout, QLineEdit, QHBoxLayout, QMessageBox
 from numpy import logspace, log10
+import datetime
+import os
 import time
 import pandas as pd
 
@@ -37,7 +39,18 @@ class sample_page(QWidget):
         self.initial_voltage = float(self.vin.text.text())
         self.initial_frequency = float(self.f1.text.text())
         self.final_frequency = float(self.f2.text.text())
-        self.archive = self.arquivo.text.text()
+        self.archive = self.resolve_archive(self.arquivo.text.text())
+
+    @staticmethod
+    def resolve_archive(path):
+        """Aceita um arquivo ou uma pasta. Se for pasta (ou vazio), cria um arquivo
+        com data e hora dentro dela."""
+        path = os.path.expanduser(path.strip()) or os.path.join(os.path.expanduser("~"), "OscLink", "")
+        if os.path.isdir(path) or path.endswith(os.sep):
+            stamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            path = os.path.join(path, f"ensaio_{stamp}.txt")
+        os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+        return path
 
     def compute_frequencies(self):
         self.array_of_frequencies = logspace(log10(self.initial_frequency),
@@ -111,4 +124,9 @@ class sample_buttons(QWidget):
         self.start.clicked.connect(self.start_sample)
 
     def start_sample(self):
-        self.mypage.terminal_execution()
+        try:
+            self.mypage.terminal_execution()
+        except Exception as e:
+            QMessageBox.critical(self, "Erro no ensaio", f"{type(e).__name__}: {e}")
+            raise
+        QMessageBox.information(self, "Ensaio concluído", f"Formas de onda salvas em:\n{self.mypage.archive}")

@@ -96,6 +96,16 @@ class serial_page(QWidget):
         self.applybtn.clicked.connect(self.connect_to_devices)
 
     def connect_to_devices(self):
+        # Clicar em "Conectar" de novo: fecha as conexões anteriores, senão o USB do
+        # osciloscópio continua preso à sessão antiga (Resource busy)
+        for conn in (self.scope.serial, self.generator.serial):
+            if conn is not None:
+                try:
+                    conn.close()
+                except Exception:
+                    pass
+        self.scope.serial = self.generator.serial = None
+
         self.rm = pyvisa.ResourceManager()
         scope_name = self.scope_options.mybtn.currentText()
         usbtmc_clear(scope_name)
