@@ -94,7 +94,7 @@ class test_page(QWidget):
             time = np.arange(len(volts)) * xincr
 
             # Diretório de salvamento
-            save_dir = r"C:\Users\psei\OneDrive\Área de Trabalho\Faculdade\Sétimo 2.0\projeto_LTSPICE\Livro\FORMAS_DE_ONDA_LIVRO"
+            save_dir = os.path.join(os.path.expanduser("~"), "OscLink", "FORMAS_DE_ONDA_LIVRO")
             os.makedirs(save_dir, exist_ok=True)
             file_path = os.path.join(save_dir, f"waveform_{channel}.csv")
 

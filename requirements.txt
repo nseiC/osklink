@@ -1,0 +1,8 @@
+PyQt5
+numpy
+pandas
+pyserial
+pyvisa
+pyvisa-py
+pyusb
+sounddevice

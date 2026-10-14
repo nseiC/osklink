@@ -1,5 +1,9 @@
 import sys
-from PyQt5.QtWidgets import QApplication 
+from linux_env import clean_snap_environment
+
+clean_snap_environment()
+
+from PyQt5.QtWidgets import QApplication
 from generate_app import generate_main
 
 def main():
@@ -10,4 +14,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-    
+
