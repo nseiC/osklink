@@ -3,6 +3,25 @@ import serial.tools.list_ports
 import time
 from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout, QPushButton, QComboBox
 
+
+def list_serial_ports():
+    """Portas seriais reais. No Linux o comports() também lista /dev/ttyS0..31,
+    que são portas legadas que não existem fisicamente (hwid 'n/a')."""
+    return [p.device for p in serial.tools.list_ports.comports() if p.hwid != "n/a"]
+
+
+def list_visa_resources(rm):
+    """Recursos VISA sem as portas seriais fantasmas, com os USB (osciloscópio) primeiro."""
+    real_ports = set(list_serial_ports())
+    resources = []
+    for res in rm.list_resources():
+        if res.startswith("ASRL"):
+            device = res[len("ASRL"):].split("::")[0]
+            if device not in real_ports:
+                continue
+        resources.append(res)
+    return sorted(resources, key=lambda r: not r.startswith("USB"))
+
 class serial_page(QWidget):
     def __init__(self, main_page):
         super().__init__()
@@ -50,16 +69,14 @@ class device_option(QWidget):
         self.rm = pyvisa.ResourceManager()
 
         if mystr == 'Osciloscópio':
-            for res in self.rm.list_resources():
+            for res in list_visa_resources(self.rm):
                 self.mybtn.addItem(res)
         elif mystr == 'Gerador de funções':
-            portas = serial.tools.list_ports.comports()
-            for p in portas:
-                self.mybtn.addItem(p.device)
+            for p in list_serial_ports():
+                self.mybtn.addItem(p)
         elif mystr == 'Outro dispositivo serial':
-            portas = serial.tools.list_ports.comports()
-            for p in portas:
-                self.mybtn.addItem(p.device)
+            for p in list_serial_ports():
+                self.mybtn.addItem(p)
         self.myObj.addWidget(self.mydevice)
         self.myObj.addWidget(self.mybtn)
         self.setLayout(self.myObj)

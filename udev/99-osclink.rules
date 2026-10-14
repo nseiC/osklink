@@ -1,0 +1,5 @@
+# Permite que usuários comuns acessem o osciloscópio Tektronix (USBTMC) via pyvisa-py
+SUBSYSTEM=="usb", ATTR{idVendor}=="0699", MODE="0666"
+SUBSYSTEM=="usbmisc", KERNEL=="usbtmc*", MODE="0666"
+# Conversor serial CH340 do gerador de funções
+SUBSYSTEM=="tty", ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="7523", MODE="0666"

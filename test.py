@@ -6,6 +6,7 @@ import numpy as np
 import sounddevice as sd
 import os
 import pyvisa  # pip install pyvisa
+from serial_execution import list_visa_resources
 
 
 class test_page(QWidget):
@@ -51,7 +52,7 @@ class test_page(QWidget):
         """Lê uma forma de onda diretamente do osciloscópio Tektronix via VISA."""
         try:
             rm = pyvisa.ResourceManager()
-            instruments = rm.list_resources()
+            instruments = [r for r in list_visa_resources(rm) if r.startswith("USB")]
 
             if not instruments:
                 QMessageBox.warning(self, "Osciloscópio não encontrado",

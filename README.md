@@ -12,13 +12,15 @@ pip install sounddevice
 
 Ou, num ambiente virtual: `pip install -r requirements.txt` (ainda é preciso o `libportaudio2` do apt para o áudio).
 
-Permissões para acessar o gerador (porta serial `/dev/ttyUSB*`/`/dev/ttyACM*`) e o osciloscópio via USB:
+Permissões para acessar o osciloscópio Tektronix (USBTMC) e o gerador (CH340, `/dev/ttyUSB*`):
 
 ```bash
-sudo usermod -aG dialout,plugdev $USER
+sudo cp udev/99-osclink.rules /etc/udev/rules.d/
+sudo udevadm control --reload-rules && sudo udevadm trigger
 ```
 
-(é preciso sair e entrar de novo na sessão depois disso)
+Depois disso, desconecte e reconecte os cabos USB. Não é preciso instalar TekVISA nem NI-VISA (o TekVISA só existe
+para Windows): o `pyvisa-py` fala direto com o osciloscópio via USB.
 
 Executar:
 
